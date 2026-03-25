@@ -1,0 +1,17 @@
+{
+  "name": "System Access",
+  "short_name": "SysAccess",
+  "theme_color": "#111827",
+  "background_color": "#111827",
+  "display": "standalone",
+  "orientation": "portrait",
+  "start_url": "/chat",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "192x192 256x256 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
