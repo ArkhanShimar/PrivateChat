@@ -200,7 +200,7 @@ export default function MessageBubble({ message, isOwn, onReply, onPin, onDelete
 
           {/* Swipe + long-press container */}
           <div
-            className={`relative group flex items-center gap-2 select-none ${showMenu || showReactionMenu ? 'z-50' : 'z-10'}`}
+            className={`relative group flex items-center gap-2 ${showMenu || showReactionMenu ? 'z-50' : 'z-10'}`}
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
