@@ -274,8 +274,12 @@ export default function MessageBubble({ message, isOwn, onReply, onPin, onDelete
                    )}
 
                    {message.text && (
-                     <p className="text-sm leading-relaxed whitespace-pre-wrap break-words break-all">{message.text}</p>
-                   )}
+                      message.iv && !message._decrypted ? (
+                        <p className="text-sm italic opacity-70">[Encrypted Message]</p>
+                      ) : (
+                        <p className="text-sm leading-relaxed whitespace-pre-wrap break-words break-all">{message.text}</p>
+                      )
+                    )}
                  </>
                )}
 

@@ -136,7 +136,7 @@ router.get('/users', async (req, res) => {
 // PATCH /api/auth/update — change name, password, or PIN
 router.patch('/update', protect, async (req, res) => {
   try {
-    const { name, currentPassword, newPassword, currentPin, newPin } = req.body;
+    const { name, currentPassword, newPassword, currentPin, newPin, encryptedPrivateKey, encryptedPrivateKeyPin } = req.body;
     const user = await User.findById(req.user._id);
 
     if (name) {
@@ -157,6 +157,9 @@ router.patch('/update', protect, async (req, res) => {
       if (!valid) return res.status(401).json({ message: 'Current PIN is incorrect' });
       user.pin = newPin;
     }
+
+    if (encryptedPrivateKey) user.encryptedPrivateKey = encryptedPrivateKey;
+    if (encryptedPrivateKeyPin) user.encryptedPrivateKeyPin = encryptedPrivateKeyPin;
 
     await user.save();
     res.json({ user: user.toJSON() });

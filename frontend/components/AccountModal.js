@@ -1,5 +1,7 @@
 import { useState, useRef } from 'react';
 import api from '../lib/api';
+import { useAuth } from '../context/AuthContext';
+import { wrapPrivateKey } from '../lib/crypto';
 
 const tabs = ['Name', 'Photo', 'Password', 'PIN', 'Delete'];
 
@@ -7,6 +9,7 @@ const tabs = ['Name', 'Photo', 'Password', 'PIN', 'Delete'];
  * Account management modal — change name, password, PIN, or delete account
  */
 export default function AccountModal({ user, onClose, onUpdate, onDeleted }) {
+  const { privateKey } = useAuth();
   const [tab, setTab] = useState('Name');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState('');
@@ -88,7 +91,17 @@ export default function AccountModal({ user, onClose, onUpdate, onDeleted }) {
     if (newPassword.length < 6) return setError('Password must be at least 6 characters');
     setLoading(true); reset();
     try {
-      await api.patch('/auth/update', { currentPassword, newPassword });
+      let encryptedPrivateKey = null;
+      if (privateKey) {
+        encryptedPrivateKey = await wrapPrivateKey(privateKey, newPassword, user.name);
+      }
+      
+      const res = await api.patch('/auth/update', { 
+        currentPassword, 
+        newPassword,
+        encryptedPrivateKey 
+      });
+      onUpdate(res.data.user);
       setSuccess('Password updated 💕');
       setCurrentPassword(''); setNewPassword(''); setConfirmPassword('');
     } catch (err) {
@@ -104,7 +117,17 @@ export default function AccountModal({ user, onClose, onUpdate, onDeleted }) {
     if (newPin !== confirmPin) return setError('PINs do not match');
     setLoading(true); reset();
     try {
-      await api.patch('/auth/update', { currentPin, newPin });
+      let encryptedPrivateKeyPin = null;
+      if (privateKey) {
+        encryptedPrivateKeyPin = await wrapPrivateKey(privateKey, newPin, user.name);
+      }
+
+      const res = await api.patch('/auth/update', { 
+        currentPin, 
+        newPin,
+        encryptedPrivateKeyPin 
+      });
+      onUpdate(res.data.user);
       setSuccess('PIN updated 💕');
       setCurrentPin(''); setNewPin(''); setConfirmPin('');
     } catch (err) {

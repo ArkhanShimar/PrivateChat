@@ -125,21 +125,27 @@ export default function Chat() {
 
   // Derive Shared Secret once partner and privateKey are available
   useEffect(() => {
+    console.log('🔐 E2EE Sync Check:', { 
+      hasPrivateKey: !!privateKey, 
+      hasPartner: !!partner, 
+      partnerPubKey: partner?.publicKey ? 'Present' : 'Missing' 
+    });
+
     if (privateKey && partner?.publicKey) {
-      console.log('Deriving shared key for partner:', partner.name);
+      console.log('🤝 Deriving shared key for partner:', partner.name);
       deriveSharedSecret(privateKey, partner.publicKey)
         .then(key => {
-          console.log('Shared key derived successfully');
+          console.log('✅ Shared key derived successfully');
           setSharedKey(key);
         })
         .catch(err => {
-          console.error('Shared secret fallback failed:', err);
+          console.error('❌ Shared secret fallback failed:', err);
           setSharedKey(null);
         });
     } else {
       setSharedKey(null);
     }
-  }, [privateKey, partner?.publicKey, partner?._id]); // more stable dependencies
+  }, [privateKey, partner?.publicKey, partner?._id]);
 
   // Re-decrypt messages when sharedKey is ready
   useEffect(() => {
@@ -356,6 +362,7 @@ export default function Chat() {
   const handleSend = useCallback(async ({ text, image, voice, voiceDuration, replyTo: replyId }) => {
     if (!socketRef.current) return;
     
+    console.log('📤 Sending Message with sharedKey:', !!sharedKey);
     let payload = { text, image, voice, voiceDuration, replyTo: replyId };
     
     if (text) {

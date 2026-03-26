@@ -26,8 +26,18 @@ export const AuthProvider = ({ children }) => {
             setToken(null);
           } else {
             const savedPriv = localStorage.getItem('lc_priv');
-            if (savedPriv) setPrivateKey(savedPriv);
-            setUser(userData); // Set user last to trigger dependent effects only when key is ready
+            console.log('🗝️ Restoring privateKey from localStorage:', !!savedPriv);
+            if (savedPriv) {
+              setPrivateKey(savedPriv);
+              setUser(userData);
+            } else {
+              // Limited session: User is logged in but has no encryption key.
+              // For "LoveChat", we'd rather force a re-login than show "[Encrypted Message]"
+              console.warn('🔐 Identity key missing from storage. Forcing re-login for security.');
+              localStorage.removeItem('lc_token');
+              setToken(null);
+              setUser(null);
+            }
           }
         })
         .catch(() => {
@@ -42,6 +52,7 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const saveAuth = (userData, authToken, privKey) => {
+    console.log('💾 Saving auth state...', { hasPriv: !!privKey });
     setUser(userData);
     setToken(authToken);
     if (privKey) {
@@ -84,7 +95,21 @@ export const AuthProvider = ({ children }) => {
       try {
         privKey = await unwrapPrivateKey(userData.encryptedPrivateKey, password, userData.name);
       } catch (err) {
-        console.error('Failed to unwrap E2EE key:', err);
+        console.error('❌ Failed to unwrap E2EE key with provided password:', err);
+        // Universal FIX: If unwrapping fails but login is valid, the current key is technically "lost".
+        // Instead of leaving the user in a broken state, we REGENERATE and save new keys.
+        console.log('🔄 Regenerating new E2EE keys to restore secure connectivity...');
+        const keys = await generateIdentityKeys();
+        const wrappedP = await wrapPrivateKey(keys.privateKey, password, userData.name);
+        
+        await api.put('/auth/update-profile', { 
+          publicKey: keys.publicKey, 
+          encryptedPrivateKey: wrappedP 
+        }).catch(e => console.error('Failed to sync regenerated keys:', e));
+        
+        privKey = keys.privateKey;
+        userData.publicKey = keys.publicKey;
+        userData.encryptedPrivateKey = wrappedP;
       }
     } else {
       // Legacy user: Generate keys now and save to server
