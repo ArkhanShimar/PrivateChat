@@ -105,7 +105,6 @@ router.patch('/seen', protect, async (req, res) => {
 router.get('/media/:userId', protect, async (req, res) => {
   try {
     const messages = await Message.find({
-      senderId: req.params.userId,
       image: { $ne: null },
     }).sort({ createdAt: -1 }).select('image createdAt');
     res.json({ media: messages });
