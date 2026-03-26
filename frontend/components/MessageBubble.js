@@ -200,7 +200,7 @@ export default function MessageBubble({ message, isOwn, onReply, onPin, onDelete
 
           {/* Swipe + long-press container */}
           <div
-            className={`relative group flex items-center gap-2 ${showMenu || showReactionMenu ? 'z-50' : 'z-10'}`}
+            className={`relative group flex items-center gap-2 min-w-0 ${showMenu || showReactionMenu ? 'z-50' : 'z-10'}`}
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
@@ -241,7 +241,7 @@ export default function MessageBubble({ message, isOwn, onReply, onPin, onDelete
 
             {/* Bubble */}
             <div
-              className={`px-4 py-2.5 rounded-2xl shadow-sm ${
+              className={`px-4 py-2.5 rounded-2xl shadow-sm min-w-0 max-w-full ${
                 isOwn
                   ? 'bg-gradient-to-br from-rose-400 to-pink-500 text-white rounded-br-sm'
                   : 'bg-white/80 dark:bg-gray-800/90 backdrop-blur text-gray-800 dark:text-gray-100 rounded-bl-sm'
@@ -265,7 +265,7 @@ export default function MessageBubble({ message, isOwn, onReply, onPin, onDelete
                   )}
 
                   {message.text && (
-                    <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{message.text}</p>
+                    <p className="text-sm leading-relaxed whitespace-pre-wrap break-words break-all">{message.text}</p>
                   )}
                 </>
               )}
