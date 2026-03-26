@@ -19,6 +19,7 @@ export default function App({ Component, pageProps }) {
     <>
       <Head>
         <title>System Access</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, viewport-fit=cover" />
         <meta name="description" content="Secure system access portal" />
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#111827" />

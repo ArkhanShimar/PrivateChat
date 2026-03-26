@@ -3,6 +3,12 @@
 @tailwind utilities;
 
 /* Romantic gradient background */
+html, body {
+  overflow-x: hidden;
+  width: 100%;
+  position: relative;
+}
+
 body {
   background: linear-gradient(135deg, #fdf2f8 0%, #fce7f3 50%, #ede9fe 100%);
   min-height: 100vh;
