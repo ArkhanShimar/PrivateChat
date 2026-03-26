@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
+import VoiceMessage from './VoiceMessage';
+import { useAuth } from '../context/AuthContext';
 
 const formatTime = (dateStr) => {
   const date = new Date(dateStr);
@@ -247,28 +249,42 @@ export default function MessageBubble({ message, isOwn, onReply, onPin, onDelete
                   : 'bg-white/80 dark:bg-gray-800/90 backdrop-blur text-gray-800 dark:text-gray-100 rounded-bl-sm'
               } ${message.pinned ? 'ring-2 ring-rose-300' : ''}`}
             >
-              {message.isDeleted ? (
-                 <p className={`text-sm italic flex items-center gap-1 ${isOwn ? 'text-white/80' : 'text-gray-500 dark:text-gray-400'}`}>
-                   🚫 This message was deleted
-                 </p>
-              ) : (
-                <>
-                  {message.image && (
-                    <>
-                      <button onClick={() => setLightbox(true)} className="mb-2 rounded-xl overflow-hidden max-w-[240px] block hover:opacity-90 transition-opacity focus:outline-none" aria-label="View full image">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={message.image} alt="Shared image" className={`w-full rounded-xl transition-opacity ${imgLoaded ? 'opacity-100' : 'opacity-0'}`} onLoad={() => setImgLoaded(true)} />
-                        {!imgLoaded && <div className="w-full h-32 bg-rose-100 animate-pulse rounded-xl" />}
-                      </button>
-                      {lightbox && <Lightbox src={message.image} onClose={() => setLightbox(false)} />}
-                    </>
-                  )}
+               {/* Reply context */}
+               {message.replyTo && (
+                 <div className={`text-[10px] p-2 mb-1.5 rounded-lg border-l-2 bg-black/5 dark:bg-white/5 ${isOwn ? 'border-white/50' : 'border-rose-400'}`}>
+                   <p className="font-semibold opacity-70">{message.replyTo.senderId?.name}</p>
+                   <p className="truncate opacity-90">{message.replyTo._decrypted ? message.replyTo.text : (message.replyTo.text || '📷 Media')}</p>
+                 </div>
+               )}
 
-                  {message.text && (
-                    <p className="text-sm leading-relaxed whitespace-pre-wrap break-words break-all">{message.text}</p>
-                  )}
-                </>
-              )}
+               {message.isDeleted ? (
+                  <p className={`text-sm italic flex items-center gap-1 ${isOwn ? 'text-white/80' : 'text-gray-500 dark:text-gray-400'}`}>
+                    🚫 This message was deleted
+                  </p>
+               ) : (
+                 <>
+                   {message.image && (
+                     <>
+                       <button onClick={() => setLightbox(true)} className="mb-2 rounded-xl overflow-hidden max-w-[240px] block hover:opacity-90 transition-opacity focus:outline-none" aria-label="View full image">
+                         {/* eslint-disable-next-line @next/next/no-img-element */}
+                         <img src={message.image} alt="Shared image" className={`w-full rounded-xl transition-opacity ${imgLoaded ? 'opacity-100' : 'opacity-0'}`} onLoad={() => setImgLoaded(true)} />
+                         {!imgLoaded && <div className="w-full h-32 bg-rose-100 animate-pulse rounded-xl" />}
+                       </button>
+                       {lightbox && <Lightbox src={message.image} onClose={() => setLightbox(false)} />}
+                     </>
+                   )}
+
+                   {message.voice && (
+                     <div className="mb-2">
+                       <VoiceMessage url={message.voice} duration={message.voiceDuration} isOwn={isOwn} />
+                     </div>
+                   )}
+
+                   {message.text && (
+                     <p className="text-sm leading-relaxed whitespace-pre-wrap break-words break-all">{message.text}</p>
+                   )}
+                 </>
+               )}
 
               <div className={`flex items-center gap-1 mt-1 ${isOwn ? 'justify-end' : 'justify-start'}`}>
                 {message.pinned && <span className="text-[10px]">📌</span>}

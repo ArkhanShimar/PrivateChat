@@ -22,4 +22,15 @@ const uploadImage = async (base64Image) => {
   return result.secure_url;
 };
 
-module.exports = { uploadImage };
+const uploadAudio = async (base64Audio) => {
+  if (!process.env.CLOUDINARY_CLOUD_NAME || process.env.CLOUDINARY_CLOUD_NAME === 'your_cloud_name') {
+    return base64Audio;
+  }
+  const result = await cloudinary.uploader.upload(base64Audio, {
+    folder: 'lovechat_voice',
+    resource_type: 'video', // Cloudinary uses 'video' category for audio files
+  });
+  return result.secure_url;
+};
+
+module.exports = { uploadImage, uploadAudio };

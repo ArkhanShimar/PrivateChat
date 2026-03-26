@@ -338,10 +338,10 @@ export default function Chat() {
     }
   }, [messages, typingUser]);
 
-  const handleSend = useCallback(async ({ text, image, replyTo: replyId }) => {
+  const handleSend = useCallback(async ({ text, image, voice, voiceDuration, replyTo: replyId }) => {
     if (!socketRef.current) return;
     
-    let payload = { text, image, replyTo: replyId };
+    let payload = { text, image, voice, voiceDuration, replyTo: replyId };
     
     if (text) {
       if (sharedKey) {

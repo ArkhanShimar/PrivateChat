@@ -11,6 +11,12 @@ export default function ChatInput({ onSend, onTyping, replyTo, onCancelReply, di
   const [text, setText] = useState('');
   const [showEmoji, setShowEmoji] = useState(false);
   const [imagePreview, setImagePreview] = useState(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingDuration, setRecordingDuration] = useState(0);
+  const [audioBlob, setAudioBlob] = useState(null);
+  const mediaRecorderRef = useRef(null);
+  const timerRef = useRef(null);
+  const chunksRef = useRef([]);
   const fileRef = useRef();
   const emojiRef = useRef(null);
   const emojiButtonRef = useRef(null);
@@ -41,11 +47,54 @@ export default function ChatInput({ onSend, onTyping, replyTo, onCancelReply, di
     };
   }, [showEmoji]);
 
-  const handleSend = () => {
-    if (!text.trim() && !imagePreview) return;
-    onSend({ text: text.trim(), image: imagePreview, replyTo: replyTo?._id });
+  // Timer for voice recording
+  useEffect(() => {
+    let interval;
+    if (isRecording) {
+      interval = setInterval(() => {
+        setRecordingDuration(prev => prev + 1);
+      }, 1000);
+    } else {
+      clearInterval(interval);
+    }
+    return () => clearInterval(interval);
+  }, [isRecording]);
+
+  const handleSend = async () => {
+    console.log('📤 handleSend called', { hasText: !!text.trim(), hasImage: !!imagePreview, hasAudio: !!audioBlob });
+    if (!text.trim() && !imagePreview && !audioBlob) return;
+    
+    let voiceBase64 = null;
+    if (audioBlob) {
+      try {
+        console.log('🎙️ Converting audio blob to base64...', audioBlob.size);
+        voiceBase64 = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(audioBlob);
+        });
+        console.log('✅ Base64 conversion complete');
+      } catch (err) {
+        console.error('❌ Failed to convert audio to base64:', err);
+      }
+    }
+
+    const payload = { 
+      text: text.trim(), 
+      image: imagePreview, 
+      voice: voiceBase64,
+      voiceDuration: recordingDuration || 0,
+      replyTo: replyTo?._id 
+    };
+
+    console.log('🚀 Sending payload to onSend', { voiceLen: voiceBase64?.length });
+    onSend(payload);
+    
     setText('');
     setImagePreview(null);
+    setAudioBlob(null);
+    setRecordingDuration(0);
     setShowEmoji(false);
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
@@ -87,6 +136,70 @@ export default function ChatInput({ onSend, onTyping, replyTo, onCancelReply, di
       URL.revokeObjectURL(objectUrl);
     };
     img.src = objectUrl;
+  };
+
+  const startRecording = async () => {
+    try {
+      console.log('🎙️ Starting recording...');
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm') 
+        ? 'audio/webm' 
+        : 'audio/mp4';
+      
+      console.log('🔧 Using mimeType:', mimeType);
+      const mediaRecorder = new MediaRecorder(stream, { mimeType });
+      mediaRecorderRef.current = mediaRecorder;
+      chunksRef.current = [];
+      setRecordingDuration(0);
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          chunksRef.current.push(e.data);
+        }
+      };
+
+      mediaRecorder.onstop = () => {
+        console.log('⏹️ Recording stopped, chunks:', chunksRef.current.length);
+        if (chunksRef.current.length === 0) {
+          console.warn('⚠️ No audio chunks recorded');
+          setIsRecording(false);
+          return;
+        }
+        const blob = new Blob(chunksRef.current, { type: mimeType });
+        console.log('📦 Created blob:', blob.size, blob.type);
+        setAudioBlob(blob);
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+    } catch (err) {
+      console.error('Error accessing microphone:', err);
+      alert('Could not access microphone. Please check permissions.');
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
+  };
+
+  const cancelRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      setAudioBlob(null);
+      chunksRef.current = [];
+    }
+  };
+
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   const onEmojiClick = (emojiData) => {
@@ -141,6 +254,23 @@ export default function ChatInput({ onSend, onTyping, replyTo, onCancelReply, di
         </div>
       )}
 
+      {/* Audio preview */}
+      {audioBlob && (
+        <div className="flex items-center gap-3 bg-rose-50 dark:bg-rose-900/20 px-4 py-2 mb-2 rounded-2xl animate-fade-in border border-rose-100 dark:border-rose-900/30 max-w-fit">
+          <div className="flex items-center gap-2 text-rose-500">
+            <span className="text-xl font-medium">🎤 Voice Message</span>
+            <span className="text-xs font-mono">{formatTime(recordingDuration)}</span>
+          </div>
+          <button
+            onClick={() => { setAudioBlob(null); setRecordingDuration(0); }}
+            className="text-gray-400 hover:text-rose-500 text-lg ml-1"
+            aria-label="Remove voice"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
       {/* Input row */}
       <div className="flex items-end gap-2 bg-white/80 dark:bg-gray-800/80 backdrop-blur rounded-3xl px-3 py-2 shadow-md border border-rose-100 dark:border-rose-900/50">
         {/* Emoji button */}
@@ -153,27 +283,42 @@ export default function ChatInput({ onSend, onTyping, replyTo, onCancelReply, di
           😊
         </button>
 
-        {/* Text area */}
-        <textarea
-          ref={textareaRef}
-          value={text}
-          onChange={handleTextChange}
-          onKeyDown={handleKeyDown}
-          placeholder="Say something sweet... 💕"
-          rows={1}
-          disabled={disabled}
-          className="chat-input flex-1 bg-transparent resize-none outline-none text-sm text-gray-700 dark:text-gray-200 placeholder-rose-300 dark:placeholder-rose-700 max-h-[120px] py-1 scrollbar-hide"
-          style={{ lineHeight: '1.5', minHeight: '36px' }}
-        />
+        {/* Voice / Stop button */}
+        {isRecording ? (
+          <div className="flex-1 flex items-center justify-between px-2 py-1 bg-rose-50 dark:bg-rose-900/20 rounded-2xl animate-pulse">
+            <div className="flex items-center gap-2">
+              <div className="w-2.5 h-2.5 bg-rose-500 rounded-full animate-ping" />
+              <span className="text-xs font-medium text-rose-600 dark:text-rose-400">{formatTime(recordingDuration)}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button onClick={cancelRecording} className="text-gray-400 hover:text-rose-500 text-xs font-medium">Cancel</button>
+              <button onClick={stopRecording} className="text-rose-500 hover:text-rose-600 font-bold text-sm">DONE</button>
+            </div>
+          </div>
+        ) : (
+          <textarea
+            ref={textareaRef}
+            value={text}
+            onChange={handleTextChange}
+            onKeyDown={handleKeyDown}
+            placeholder="Say something sweet... 💕"
+            rows={1}
+            disabled={disabled}
+            className="chat-input flex-1 bg-transparent resize-none outline-none text-sm text-gray-700 dark:text-gray-200 placeholder-rose-300 dark:placeholder-rose-700 max-h-[120px] py-1 scrollbar-hide"
+            style={{ lineHeight: '1.5', minHeight: '36px' }}
+          />
+        )}
 
         {/* Image upload */}
-        <button
-          onClick={() => fileRef.current?.click()}
-          className="text-xl p-1 hover:scale-110 transition-transform"
-          aria-label="Attach image"
-        >
-          📷
-        </button>
+        {!isRecording && (
+          <button
+            onClick={() => fileRef.current?.click()}
+            className="text-xl p-1 hover:scale-110 transition-transform"
+            aria-label="Attach image"
+          >
+            📷
+          </button>
+        )}
         <input
           ref={fileRef}
           type="file"
@@ -182,17 +327,29 @@ export default function ChatInput({ onSend, onTyping, replyTo, onCancelReply, di
           onChange={handleImageSelect}
         />
 
-        {/* Send button */}
-        <button
-          onClick={handleSend}
-          disabled={!text.trim() && !imagePreview}
-          className="bg-gradient-to-br from-rose-400 to-pink-500 text-white rounded-full w-9 h-9 flex items-center justify-center shadow-md hover:shadow-lg hover:scale-105 transition-all disabled:opacity-40 disabled:scale-100"
-          aria-label="Send message"
-        >
-          <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 rotate-45">
-            <path d="M2 21l21-9L2 3v7l15 2-15 2v7z" />
-          </svg>
-        </button>
+        {/* Voice Recording / Send Button */}
+        {!isRecording && !text.trim() && !imagePreview && !audioBlob ? (
+          <button
+            onClick={startRecording}
+            className="text-xl p-1 hover:scale-110 transition-transform text-gray-500 hover:text-rose-500"
+            aria-label="Record voice"
+          >
+            🎤
+          </button>
+        ) : (
+          !isRecording && (
+            <button
+              onClick={handleSend}
+              disabled={!text.trim() && !imagePreview && !audioBlob}
+              className="bg-gradient-to-br from-rose-400 to-pink-500 text-white rounded-full w-9 h-9 flex items-center justify-center shadow-md hover:shadow-lg hover:scale-105 transition-all disabled:opacity-40 disabled:scale-100"
+              aria-label="Send message"
+            >
+              <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 rotate-45">
+                <path d="M2 21l21-9L2 3v7l15 2-15 2v7z" />
+              </svg>
+            </button>
+          )
+        )}
       </div>
     </div>
   );

@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken');
 const Message = require('../models/Message');
 const User = require('../models/User');
-const { uploadImage } = require('../config/cloudinary');
+const { uploadImage, uploadAudio } = require('../config/cloudinary');
 
 // Track connected users: userId -> socketId
 const connectedUsers = new Map();
@@ -52,9 +52,9 @@ const socketHandler = (io) => {
     // Handle sending a message
     socket.on('send_message', async (data) => {
       try {
-        const { text, image, replyTo, iv } = data;
+        const { text, image, voice, voiceDuration, replyTo, iv } = data;
 
-        if (!text && !image) return;
+        if (!text && !image && !voice) return;
 
         let imageUrl = null;
         if (image) {
@@ -62,7 +62,18 @@ const socketHandler = (io) => {
             imageUrl = await uploadImage(image);
           } catch (uploadErr) {
             console.error('❌ Image upload failed:', uploadErr.message);
-            socket.emit('upload_error', { message: 'Image upload failed: ' + uploadErr.message });
+            socket.emit('upload_error', { message: 'Image upload failed' });
+            return;
+          }
+        }
+
+        let voiceUrl = null;
+        if (voice) {
+          try {
+            voiceUrl = await uploadAudio(voice);
+          } catch (uploadErr) {
+            console.error('❌ Voice upload failed:', uploadErr.message);
+            socket.emit('upload_error', { message: 'Voice upload failed' });
             return;
           }
         }
@@ -71,6 +82,8 @@ const socketHandler = (io) => {
           senderId: socket.user._id,
           text: text || '',
           image: imageUrl,
+          voice: voiceUrl,
+          voiceDuration: voiceDuration || 0,
           replyTo: replyTo || null,
           iv: iv || null,
         });
