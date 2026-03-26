@@ -76,6 +76,7 @@ export default function MessageBubble({ message, isOwn, onReply, onPin, onDelete
   const [swipeX, setSwipeX] = useState(0);
   const [swiping, setSwiping] = useState(false);
   const menuRef = useRef(null);
+  const reactionMenuRef = useRef(null);
   const touchStartX = useRef(null);
   const touchStartY = useRef(null);
   const swipeTriggered = useRef(false);
@@ -142,7 +143,7 @@ export default function MessageBubble({ message, isOwn, onReply, onPin, onDelete
     if (!showMenu && !showReactionMenu) return;
     const handler = (e) => {
       if (showMenu && menuRef.current && !menuRef.current.contains(e.target)) setShowMenu(false);
-      if (showReactionMenu) setShowReactionMenu(false);
+      if (showReactionMenu && reactionMenuRef.current && !reactionMenuRef.current.contains(e.target)) setShowReactionMenu(false);
     };
     
     // Slight delay to prevent immediate trigger on button click
@@ -229,7 +230,7 @@ export default function MessageBubble({ message, isOwn, onReply, onPin, onDelete
                 <button onClick={() => setShowMenu(v => !v)} className="text-base hover:scale-110 transition-transform" title="Delete">🗑️</button>
                 
                 {showReactionMenu && (
-                  <div className="absolute top-full mt-2 left-0 bg-white dark:bg-gray-800 rounded-full shadow-lg border border-rose-100 dark:border-rose-900/50 flex items-center gap-2 px-3 py-2 z-50 animate-fade-in flex-nowrap">
+                  <div ref={reactionMenuRef} className="absolute top-full mt-2 left-0 bg-white dark:bg-gray-800 rounded-full shadow-lg border border-rose-100 dark:border-rose-900/50 flex items-center gap-2 px-3 py-2 z-50 animate-fade-in flex-nowrap">
                     {REACTION_EMOJIS.map(e => (
                       <button key={e} onClick={(ev) => { ev.stopPropagation(); onReact(message._id, e); setShowReactionMenu(false); }} className="hover:scale-125 transition-transform text-2xl">{e}</button>
                     ))}
@@ -303,7 +304,7 @@ export default function MessageBubble({ message, isOwn, onReply, onPin, onDelete
                 <button onClick={() => setShowMenu(v => !v)} className="text-base hover:scale-110 transition-transform" title="Delete">🗑️</button>
                 
                 {showReactionMenu && (
-                  <div className="absolute top-full mt-2 right-0 bg-white dark:bg-gray-800 rounded-full shadow-lg border border-rose-100 dark:border-rose-900/50 flex items-center gap-2 px-3 py-2 z-50 animate-fade-in flex-nowrap">
+                  <div ref={reactionMenuRef} className="absolute top-full mt-2 right-0 bg-white dark:bg-gray-800 rounded-full shadow-lg border border-rose-100 dark:border-rose-900/50 flex items-center gap-2 px-3 py-2 z-50 animate-fade-in flex-nowrap">
                     {REACTION_EMOJIS.map(e => (
                       <button key={e} onClick={(ev) => { ev.stopPropagation(); onReact(message._id, e); setShowReactionMenu(false); }} className="hover:scale-125 transition-transform text-2xl">{e}</button>
                     ))}
