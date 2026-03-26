@@ -77,6 +77,21 @@ export default function Chat() {
     if (!loading && !user) router.replace('/login');
   }, [user, loading, router]);
 
+  const fetchPartnerData = useCallback(() => {
+    if (!user) return;
+    return api.get('/auth/full-users').then(res => {
+      const me = res.data.users.find(u => u._id.toString() === user._id.toString());
+      const p = res.data.users.find(u => u._id.toString() !== user._id.toString());
+      if (me) setMyData(me);
+      if (p) {
+        setPartner(p);
+        setPartnerLastSeen(p.lastSeen || p.updatedAt || p.createdAt);
+        const nick = me?.nicknames?.[p._id];
+        setPartnerName(nick || p.name);
+      }
+    });
+  }, [user]);
+
   // Load message history
   useEffect(() => {
     if (!user) return;
@@ -89,20 +104,8 @@ export default function Chat() {
     // Load pinned message
     api.get('/messages/pinned').then(res => setPinnedMessage(res.data.message)).catch(() => {});
 
-    // Get partner info + full user data (avatar, nicknames)
-    api.get('/auth/full-users').then(res => {
-      const me = res.data.users.find(u => u._id === user._id || u.name === user.name);
-      const p = res.data.users.find(u => u.name !== user.name);
-      if (me) setMyData(me);
-      if (p) {
-        setPartner(p);
-        setPartnerLastSeen(p.lastSeen || p.updatedAt || p.createdAt);
-        // Show nickname if set, else real name
-        const nick = me?.nicknames?.[p._id];
-        setPartnerName(nick || p.name);
-      }
-    });
-  }, [user]);
+    fetchPartnerData();
+  }, [user, fetchPartnerData]);
 
   // Derive Shared Secret once partner and privateKey are available
   useEffect(() => {
@@ -207,6 +210,12 @@ export default function Chat() {
         if (msg.replyTo && msg.replyTo.iv && msg.replyTo.text) {
           const decReply = await decryptMessage(msg.replyTo.text, msg.replyTo.iv, sharedKey);
           finalMsg.replyTo = { ...msg.replyTo, text: decReply, _decrypted: true };
+        }
+      } else {
+        // Reactive Sync: If message is encrypted but we have no key, try re-fetching partner data
+        if (msg.iv && msg.text) {
+          console.log('Encrypted message received without sharedKey. Triggering profile sync...');
+          fetchPartnerData();
         }
       }
       
@@ -341,7 +350,11 @@ export default function Chat() {
       } else {
         // Privacy Guard: Block plaintext if encryption is intended but key is missing
         console.error('Encryption key not established. Blocking message for privacy.');
-        alert('⚠️ Secure connection not established. Please try refreshing or logging out.');
+        const msg = !privateKey 
+          ? '⚠️ Security keys not initialized. Please log out and log back in with your PASSWORD to sync keys.'
+          : '⚠️ Waiting for partner to initialize secure connection. Please try again in a moment.';
+        alert(msg);
+        fetchPartnerData();
         return;
       }
     }
@@ -507,15 +520,6 @@ export default function Chat() {
                   ) : (
                     <div className="flex items-center gap-1">
                       <span>{isPartnerOnline ? '🟢 Online' : (partnerLastSeen ? `⚫ Last seen ${formatLastSeen(partnerLastSeen)}` : '⚫ Offline')}</span>
-                      {sharedKey ? (
-                        <span title="End-to-End Encrypted" className="text-[10px] bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 px-1.5 py-0.5 rounded-full flex items-center gap-0.5 ml-1">
-                          🔒 E2EE
-                        </span>
-                      ) : (
-                        <span title="Not Encrypted" className="text-[10px] bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 px-1.5 py-0.5 rounded-full flex items-center gap-0.5 ml-1">
-                          🔓 Unsecured
-                        </span>
-                      )}
                     </div>
                   )}
                 </p>

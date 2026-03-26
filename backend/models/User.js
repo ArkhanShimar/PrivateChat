@@ -14,6 +14,7 @@ const userSchema = new mongoose.Schema({
   // E2EE Credentials
   publicKey: { type: String, default: null },
   encryptedPrivateKey: { type: String, default: null },
+  encryptedPrivateKeyPin: { type: String, default: null },
 }, { timestamps: true });
 
 userSchema.pre('save', async function (next) {

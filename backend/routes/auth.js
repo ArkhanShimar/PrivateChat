@@ -38,7 +38,7 @@ router.post('/register', async (req, res) => {
       return res.status(403).json({ message: 'Registration closed. Only 2 users allowed.' });
     }
 
-    const { name, password, pin, publicKey, encryptedPrivateKey } = req.body;
+    const { name, password, pin, publicKey, encryptedPrivateKey, encryptedPrivateKeyPin } = req.body;
     
     if (!name || !password || !pin) {
       return res.status(400).json({ message: 'Name, password, and PIN are required' });
@@ -47,7 +47,7 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ message: 'PIN must be exactly 6 digits' });
     }
 
-    const user = await User.create({ name, password, pin, publicKey, encryptedPrivateKey });
+    const user = await User.create({ name, password, pin, publicKey, encryptedPrivateKey, encryptedPrivateKeyPin });
     const token = sendToken(res, user);
 
     res.status(201).json({ user: user.toJSON(), token });
@@ -168,11 +168,12 @@ router.patch('/update', protect, async (req, res) => {
 // PUT /api/auth/update-profile — generic profile update for E2EE keys
 router.put('/update-profile', protect, async (req, res) => {
   try {
-    const { publicKey, encryptedPrivateKey } = req.body;
+    const { publicKey, encryptedPrivateKey, encryptedPrivateKeyPin } = req.body;
     const user = await User.findById(req.user._id);
 
     if (publicKey) user.publicKey = publicKey;
     if (encryptedPrivateKey) user.encryptedPrivateKey = encryptedPrivateKey;
+    if (encryptedPrivateKeyPin) user.encryptedPrivateKeyPin = encryptedPrivateKeyPin;
 
     await user.save();
     res.json({ user: user.toJSON() });

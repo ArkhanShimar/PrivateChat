@@ -13,7 +13,7 @@ export const AuthProvider = ({ children }) => {
 
   // Restore session on mount
   useEffect(() => {
-    const savedToken = sessionStorage.getItem('lc_token');
+    const savedToken = localStorage.getItem('lc_token');
     if (savedToken) {
       setToken(savedToken);
       api.get('/auth/me')
@@ -25,14 +25,14 @@ export const AuthProvider = ({ children }) => {
             sessionStorage.removeItem('lc_token');
             setToken(null);
           } else {
-            const savedPriv = sessionStorage.getItem('lc_priv');
+            const savedPriv = localStorage.getItem('lc_priv');
             if (savedPriv) setPrivateKey(savedPriv);
             setUser(userData); // Set user last to trigger dependent effects only when key is ready
           }
         })
         .catch(() => {
-          sessionStorage.removeItem('lc_token');
-          sessionStorage.removeItem('lc_priv');
+          localStorage.removeItem('lc_token');
+          localStorage.removeItem('lc_priv');
           setToken(null);
         })
         .finally(() => setLoading(false));
@@ -46,9 +46,9 @@ export const AuthProvider = ({ children }) => {
     setToken(authToken);
     if (privKey) {
       setPrivateKey(privKey);
-      sessionStorage.setItem('lc_priv', privKey);
+      localStorage.setItem('lc_priv', privKey);
     }
-    sessionStorage.setItem('lc_token', authToken);
+    localStorage.setItem('lc_token', authToken);
   };
 
   const register = async (name, password, pin) => {
@@ -57,12 +57,16 @@ export const AuthProvider = ({ children }) => {
     // 2. Wrap private key with password (using name as salt for simplicity)
     const encryptedPrivateKey = await wrapPrivateKey(keys.privateKey, password, name);
     
+    // 3. Wrap private key with PIN too
+    const encryptedPrivateKeyPin = await wrapPrivateKey(keys.privateKey, pin, name);
+    
     const res = await api.post('/auth/register', { 
       name, 
       password, 
       pin,
       publicKey: keys.publicKey,
-      encryptedPrivateKey
+      encryptedPrivateKey,
+      encryptedPrivateKeyPin
     });
     
     saveAuth(res.data.user, res.data.token, keys.privateKey);
@@ -104,23 +108,37 @@ export const AuthProvider = ({ children }) => {
 
     let privKey = null;
 
-    if (userData.encryptedPrivateKey) {
+    if (userData.encryptedPrivateKeyPin) {
       try {
-        // Try unwrapping with PIN as fallback for quick access
+        privKey = await unwrapPrivateKey(userData.encryptedPrivateKeyPin, pin, userData.name);
+      } catch (err) {
+        console.warn('E2EE key unwrap with PIN failed:', err);
+      }
+    } else if (userData.encryptedPrivateKey) {
+      // Fallback to password-wrapped key (might fail if PIN != password, but we try)
+      try {
         privKey = await unwrapPrivateKey(userData.encryptedPrivateKey, pin, userData.name);
       } catch (err) {
-        console.warn('E2EE key unwrap with PIN failed. Full password might be required for decryption.');
+        console.warn('E2EE key unwrap with PIN failed (no PIN-wrapped key found). Auto-regenerating...');
       }
-    } else {
-      // Legacy user on PIN login: Generate keys using PIN as derivation
-      console.log('Generating E2EE keys for legacy user (PIN)...');
+    }
+
+    if (!privKey) {
+      // Universal Fix: If we still have no key after trying all wraps, generate a NEW one.
+      // This ensures the user is "Secured" immediately even if they only use PIN.
+      console.log('Generating NEW E2EE keys for seamless PIN-only migration...');
       const keys = await generateIdentityKeys();
-      const wrapped = await wrapPrivateKey(keys.privateKey, pin, userData.name);
-      api.put('/auth/update-profile', { publicKey: keys.publicKey, encryptedPrivateKey: wrapped })
-        .catch(err => console.error('Failed to save legacy keys (PIN):', err));
+      const wrappedPin = await wrapPrivateKey(keys.privateKey, pin, userData.name);
+      
+      // Save new keys to server (silently if possible, or just keep locally if it fails)
+      api.put('/auth/update-profile', { 
+        publicKey: keys.publicKey, 
+        encryptedPrivateKeyPin: wrappedPin 
+      }).catch(err => console.error('Failed to sync new PIN keys to server:', err));
+      
       privKey = keys.privateKey;
       userData.publicKey = keys.publicKey;
-      userData.encryptedPrivateKey = wrapped;
+      userData.encryptedPrivateKeyPin = wrappedPin;
     }
 
     saveAuth(userData, res.data.token, privKey);
@@ -133,8 +151,8 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     setToken(null);
     setPrivateKey(null);
-    sessionStorage.removeItem('lc_token');
-    sessionStorage.removeItem('lc_priv');
+    localStorage.removeItem('lc_token');
+    localStorage.removeItem('lc_priv');
   };
 
   return (
