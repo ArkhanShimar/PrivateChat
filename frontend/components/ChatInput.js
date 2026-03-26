@@ -14,6 +14,16 @@ export default function ChatInput({ onSend, onTyping, replyTo, onCancelReply, di
   const fileRef = useRef();
   const emojiRef = useRef(null);
   const emojiButtonRef = useRef(null);
+  const textareaRef = useRef(null);
+
+  // Auto-resize textarea as text grows
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto'; // Reset to calculate
+      const newHeight = Math.min(textareaRef.current.scrollHeight, 120);
+      textareaRef.current.style.height = `${newHeight}px`;
+    }
+  }, [text]);
 
   useEffect(() => {
     if (!showEmoji) return;
@@ -37,6 +47,9 @@ export default function ChatInput({ onSend, onTyping, replyTo, onCancelReply, di
     setText('');
     setImagePreview(null);
     setShowEmoji(false);
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+    }
   };
 
   const handleKeyDown = (e) => {
@@ -142,14 +155,15 @@ export default function ChatInput({ onSend, onTyping, replyTo, onCancelReply, di
 
         {/* Text area */}
         <textarea
+          ref={textareaRef}
           value={text}
           onChange={handleTextChange}
           onKeyDown={handleKeyDown}
           placeholder="Say something sweet... 💕"
           rows={1}
           disabled={disabled}
-          className="chat-input flex-1 bg-transparent resize-none outline-none text-sm text-gray-700 dark:text-gray-200 placeholder-rose-300 dark:placeholder-rose-700 max-h-32 py-1"
-          style={{ lineHeight: '1.5' }}
+          className="chat-input flex-1 bg-transparent resize-none outline-none text-sm text-gray-700 dark:text-gray-200 placeholder-rose-300 dark:placeholder-rose-700 max-h-[120px] py-1 scrollbar-hide"
+          style={{ lineHeight: '1.5', minHeight: '36px' }}
         />
 
         {/* Image upload */}
