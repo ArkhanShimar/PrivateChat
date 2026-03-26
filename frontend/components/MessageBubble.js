@@ -249,13 +249,6 @@ export default function MessageBubble({ message, isOwn, onReply, onPin, onDelete
                   : 'bg-white/80 dark:bg-gray-800/90 backdrop-blur text-gray-800 dark:text-gray-100 rounded-bl-sm'
               } ${message.pinned ? 'ring-2 ring-rose-300' : ''}`}
             >
-               {/* Reply context */}
-               {message.replyTo && (
-                 <div className={`text-[10px] p-2 mb-1.5 rounded-lg border-l-2 bg-black/5 dark:bg-white/5 ${isOwn ? 'border-white/50' : 'border-rose-400'}`}>
-                   <p className="font-semibold opacity-70">{message.replyTo.senderId?.name}</p>
-                   <p className="truncate opacity-90">{message.replyTo._decrypted ? message.replyTo.text : (message.replyTo.text || '📷 Media')}</p>
-                 </div>
-               )}
 
                {message.isDeleted ? (
                   <p className={`text-sm italic flex items-center gap-1 ${isOwn ? 'text-white/80' : 'text-gray-500 dark:text-gray-400'}`}>

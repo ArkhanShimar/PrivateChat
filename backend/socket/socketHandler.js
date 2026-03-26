@@ -89,7 +89,12 @@ const socketHandler = (io) => {
         });
 
         await message.populate('senderId', 'name');
-        if (message.replyTo) await message.populate('replyTo');
+        if (message.replyTo) {
+          await message.populate({
+            path: 'replyTo',
+            populate: { path: 'senderId', select: 'name' }
+          });
+        }
 
         io.to('lovechat-room').emit('new_message', message);
       } catch (err) {
