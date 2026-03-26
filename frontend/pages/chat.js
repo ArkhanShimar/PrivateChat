@@ -407,7 +407,7 @@ export default function Chat() {
   if (loading || !user) return null;
 
   return (
-    <div className="h-screen overflow-hidden relative">
+    <div className="h-dvh overflow-hidden relative">
       <FloatingHearts />
 
       {/* Desktop 3-column layout — all columns locked to viewport height */}
@@ -417,7 +417,7 @@ export default function Chat() {
         <LeftPanel />
 
         {/* Center chat column — flex column, fills height, messages scroll internally */}
-        <div className="flex flex-col h-screen lg:border-x border-rose-100 dark:border-rose-900/50 bg-white/30 dark:bg-black/20 backdrop-blur-sm">
+        <div className="flex flex-col h-full lg:border-x border-rose-100 dark:border-rose-900/50 bg-white/30 dark:bg-black/20 backdrop-blur-sm">
 
           {/* Header — fixed at top */}
           <div className="flex-shrink-0 bg-white/80 dark:bg-gray-900/90 backdrop-blur border-b border-rose-100 dark:border-rose-900/50 shadow-sm z-20">
