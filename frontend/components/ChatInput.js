@@ -304,7 +304,7 @@ export default function ChatInput({ onSend, onTyping, replyTo, onCancelReply, di
             placeholder="Say something sweet... 💕"
             rows={1}
             disabled={disabled}
-            className="chat-input flex-1 bg-transparent resize-none outline-none text-sm text-gray-700 dark:text-gray-200 placeholder-rose-300 dark:placeholder-rose-700 max-h-[120px] py-1 scrollbar-hide"
+            className="chat-input flex-1 bg-transparent resize-none outline-none text-[16px] text-gray-700 dark:text-gray-200 placeholder-rose-300 dark:placeholder-rose-700 max-h-[120px] py-1 scrollbar-hide"
             style={{ lineHeight: '1.5', minHeight: '36px' }}
           />
         )}

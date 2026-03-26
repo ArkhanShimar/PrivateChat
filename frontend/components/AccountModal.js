@@ -151,7 +151,7 @@ export default function AccountModal({ user, onClose, onUpdate, onDeleted }) {
     }
   };
 
-  const inputClass = "w-full px-4 py-3 rounded-2xl border border-rose-200 dark:border-rose-800 bg-white/80 dark:bg-gray-800 dark:text-gray-200 dark:placeholder-gray-500 focus:outline-none focus:border-rose-400 text-sm transition-all";
+  const inputClass = "w-full px-4 py-3 rounded-2xl border border-rose-200 dark:border-rose-800 bg-white/80 dark:bg-gray-800 dark:text-gray-200 dark:placeholder-gray-500 focus:outline-none focus:border-rose-400 text-base transition-all";
   const btnClass = "w-full py-3 rounded-2xl font-semibold shadow-md hover:shadow-lg transition-all disabled:opacity-60 text-sm";
 
   return (
