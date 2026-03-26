@@ -407,17 +407,17 @@ export default function Chat() {
   if (loading || !user) return null;
 
   return (
-    <div className="h-dvh overflow-hidden relative">
+    <div className="fixed inset-0 w-full overflow-hidden flex flex-col">
       <FloatingHearts />
 
       {/* Desktop 3-column layout — all columns locked to viewport height */}
-      <div className="h-full max-w-6xl mx-auto lg:grid lg:grid-cols-[260px_1fr_260px]">
+      <div className="flex-1 min-h-0 max-w-6xl w-full mx-auto lg:grid lg:grid-cols-[260px_1fr_260px] overflow-hidden">
 
         {/* Left decorative panel */}
         <LeftPanel />
 
         {/* Center chat column — flex column, fills height, messages scroll internally */}
-        <div className="flex flex-col h-full lg:border-x border-rose-100 dark:border-rose-900/50 bg-white/30 dark:bg-black/20 backdrop-blur-sm">
+        <div className="flex flex-col h-full min-h-0 lg:border-x border-rose-100 dark:border-rose-900/50 bg-white/30 dark:bg-black/20 backdrop-blur-sm">
 
           {/* Header — fixed at top */}
           <div className="flex-shrink-0 bg-white/80 dark:bg-gray-900/90 backdrop-blur border-b border-rose-100 dark:border-rose-900/50 shadow-sm z-20">

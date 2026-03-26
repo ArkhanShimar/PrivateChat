@@ -50,7 +50,7 @@ export function LeftPanel() {
   const { index: quoteIndex, visible: quoteVisible } = useFadingIndex(romanticQuotes.length, 6000);
 
   return (
-    <div className="hidden lg:flex flex-col h-screen overflow-hidden py-8 px-5 gap-5 justify-between">
+    <div className="hidden lg:flex flex-col h-full overflow-hidden py-8 px-5 gap-5 justify-between">
 
       {/* Quote card — container stays, only text fades */}
       <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur rounded-3xl p-5 shadow-md border border-rose-100 dark:border-rose-900/40 text-center flex-shrink-0">
@@ -140,7 +140,7 @@ export function RightPanel({ user, onOpenAccount, onAvatarUpdate }) {
   };
 
   return (
-    <div className="hidden lg:flex flex-col h-screen overflow-hidden py-8 px-5 gap-5 justify-between">
+    <div className="hidden lg:flex flex-col h-full overflow-hidden py-8 px-5 gap-5 justify-between">
 
       {/* Date */}
       <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur rounded-2xl px-4 py-3 border border-rose-100 dark:border-rose-900/40 text-center flex-shrink-0">
