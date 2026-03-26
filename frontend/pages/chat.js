@@ -44,6 +44,7 @@ export default function Chat() {
   const [onlineUsers, setOnlineUsers] = useState([]);
   const [replyTo, setReplyTo] = useState(null);
   const [loadingMsgs, setLoadingMsgs] = useState(true);
+  const [showScrollBottom, setShowScrollBottom] = useState(false);
   const [partnerName, setPartnerName] = useState('');
   const [partner, setPartner] = useState(null);
   const [partnerLastSeen, setPartnerLastSeen] = useState(null);
@@ -444,9 +445,15 @@ export default function Chat() {
     }
   }, [page, hasMore, isFetchingMore, user]);
 
-  const handleScroll = (e) => {
-    // If scrolled to top, load more
-    if (e.target.scrollTop === 0 && hasMore && !isFetchingMore) {
+  const handleScroll = () => {
+    if (!messageContainerRef.current) return;
+    const { scrollTop, clientHeight, scrollHeight } = messageContainerRef.current;
+    
+    // Show FAB if scrolled up more than 200px from bottom
+    const isNearBottom = scrollHeight - scrollTop - clientHeight < 200;
+    setShowScrollBottom(!isNearBottom);
+
+    if (scrollTop === 0 && hasMore && !loadingMsgs) {
       loadMoreMessages();
     }
   };
@@ -465,6 +472,10 @@ export default function Chat() {
     } else {
       alert("Message is further back in history. Please scroll up first.");
     }
+  };
+
+  const scrollToBottom = () => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   const isPartnerOnline = onlineUsers.some(id => {
@@ -653,9 +664,22 @@ export default function Chat() {
             <div ref={bottomRef} />
           </div>
 
-          {/* Input bar — pinned to bottom, never moves */}
-          <div className="flex-shrink-0 bg-white/60 dark:bg-gray-900/80 backdrop-blur border-t border-rose-100 dark:border-rose-900/50 px-4 py-3 z-20">
-            <ChatInput
+          {/* Message input */}
+            <div className="flex-shrink-0 bg-white/60 dark:bg-gray-900/80 backdrop-blur border-t border-rose-100 dark:border-rose-900/50 px-4 py-3 z-20 relative">
+              {/* Scroll to Bottom FAB */}
+              {showScrollBottom && (
+                <button
+                  onClick={() => scrollToBottom()}
+                  className="absolute -top-16 right-6 bg-rose-500 hover:bg-rose-600 text-white w-10 h-10 rounded-full shadow-lg flex items-center justify-center transition-all animate-bounce hover:animate-none z-30"
+                  title="Scroll to latest"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 13l-7 7-7-7m14-8l-7 7-7-7" />
+                  </svg>
+                </button>
+              )}
+
+              <ChatInput
               onSend={handleSend}
               onTyping={handleTyping}
               replyTo={replyTo}

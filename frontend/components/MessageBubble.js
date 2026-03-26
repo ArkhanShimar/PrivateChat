@@ -230,7 +230,7 @@ export default function MessageBubble({ message, isOwn, onReply, onPin, onDelete
                 <button onClick={() => setShowMenu(v => !v)} className="text-base hover:scale-110 transition-transform" title="Delete">🗑️</button>
                 
                 {showReactionMenu && (
-                  <div ref={reactionMenuRef} className="absolute top-full mt-2 left-0 bg-white dark:bg-gray-800 rounded-full shadow-lg border border-rose-100 dark:border-rose-900/50 flex items-center gap-2 px-3 py-2 z-50 animate-fade-in flex-nowrap">
+                  <div ref={reactionMenuRef} className="absolute bottom-full mb-2 left-0 bg-white dark:bg-gray-800 rounded-full shadow-lg border border-rose-100 dark:border-rose-900/50 flex items-center gap-2 px-3 py-2 z-50 animate-fade-in flex-nowrap">
                     {REACTION_EMOJIS.map(e => (
                       <button key={e} onClick={(ev) => { ev.stopPropagation(); onReact(message._id, e); setShowReactionMenu(false); }} className="hover:scale-125 transition-transform text-2xl">{e}</button>
                     ))}
@@ -280,7 +280,7 @@ export default function MessageBubble({ message, isOwn, onReply, onPin, onDelete
 
               {/* Desktop delete dropdown */}
               {showMenu && (
-                <div ref={menuRef} className={`absolute top-full mt-1 z-[100] bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-rose-100 dark:border-rose-900/50 overflow-hidden animate-fade-in ${isOwn ? 'right-0' : 'left-0'}`}>
+                <div ref={menuRef} className={`absolute bottom-full mb-1 z-[100] bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-rose-100 dark:border-rose-900/50 overflow-hidden animate-fade-in ${isOwn ? 'right-0' : 'left-0'}`}>
                   <button onClick={() => { onDelete(message._id, false); setShowMenu(false); }} className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-600 dark:text-gray-300 hover:bg-rose-50 dark:hover:bg-rose-900/20 w-full text-left whitespace-nowrap">
                     🙈 Delete for me
                   </button>
@@ -304,7 +304,7 @@ export default function MessageBubble({ message, isOwn, onReply, onPin, onDelete
                 <button onClick={() => setShowMenu(v => !v)} className="text-base hover:scale-110 transition-transform" title="Delete">🗑️</button>
                 
                 {showReactionMenu && (
-                  <div ref={reactionMenuRef} className="absolute top-full mt-2 right-0 bg-white dark:bg-gray-800 rounded-full shadow-lg border border-rose-100 dark:border-rose-900/50 flex items-center gap-2 px-3 py-2 z-50 animate-fade-in flex-nowrap">
+                  <div ref={reactionMenuRef} className="absolute bottom-full mb-2 right-0 bg-white dark:bg-gray-800 rounded-full shadow-lg border border-rose-100 dark:border-rose-900/50 flex items-center gap-2 px-3 py-2 z-50 animate-fade-in flex-nowrap">
                     {REACTION_EMOJIS.map(e => (
                       <button key={e} onClick={(ev) => { ev.stopPropagation(); onReact(message._id, e); setShowReactionMenu(false); }} className="hover:scale-125 transition-transform text-2xl">{e}</button>
                     ))}
