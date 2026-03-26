@@ -261,6 +261,10 @@ const socketHandler = (io) => {
     socket.on('stop_typing', () => {
       socket.to('lovechat-room').emit('user_stop_typing', { userId: socket.user._id });
     });
+
+    socket.on('keys_updated', () => {
+      socket.to('lovechat-room').emit('keys_updated');
+    });
   });
 };
 

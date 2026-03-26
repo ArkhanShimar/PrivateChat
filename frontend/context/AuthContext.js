@@ -106,6 +106,13 @@ export const AuthProvider = ({ children }) => {
           publicKey: keys.publicKey, 
           encryptedPrivateKey: wrappedP 
         }).catch(e => console.error('Failed to sync regenerated keys:', e));
+
+        const savedToken = localStorage.getItem('lc_token');
+        if (savedToken) {
+          const { getSocket } = require('../lib/socket');
+          const socket = getSocket(savedToken);
+          socket.emit('keys_updated');
+        }
         
         privKey = keys.privateKey;
         userData.publicKey = keys.publicKey;

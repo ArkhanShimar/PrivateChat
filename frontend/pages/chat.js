@@ -158,10 +158,20 @@ export default function Chat() {
 
         // 1. Decrypt main text
         if (msg.iv && msg.text && !msg.isDeleted && !msg._decrypted) {
-          const decryptedText = await decryptMessage(msg.text, msg.iv, sharedKey);
-          newMsg.text = decryptedText;
-          newMsg._decrypted = true;
-          updated = true;
+          try {
+            const decryptedText = await decryptMessage(msg.text, msg.iv, sharedKey);
+            if (decryptedText === '[Encrypted Message]') {
+              // Decryption failed internally in crypto.js
+              console.warn('⚠️ Decryption failed for message. Key might be outdated.');
+              // We don't set _decrypted = true here, so it can be retried if sharedKey changes
+            } else {
+              newMsg.text = decryptedText;
+              newMsg._decrypted = true;
+              updated = true;
+            }
+          } catch (e) {
+            console.error('Decryption error:', e);
+          }
         }
 
         // 2. Decrypt reply preview
@@ -265,6 +275,11 @@ export default function Chat() {
       if (offId !== user?._id?.toString()) {
         setPartnerLastSeen(lastSeen);
       }
+    });
+
+    socket.on('keys_updated', () => {
+      console.log('🔄 Partner regenerated security keys. Re-syncing...');
+      fetchPartnerData();
     });
 
     socket.on('incoming_call', ({ offer, from }) => {
