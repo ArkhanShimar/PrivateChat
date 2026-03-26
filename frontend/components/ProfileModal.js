@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import api from '../lib/api';
+import { decryptMessage } from '../lib/crypto';
 
-export default function ProfileModal({ partner, isOnline, currentUser, onClose, onNicknameUpdate, onAvatarUpdate, onJumpToMessage, onClearChat }) {
+export default function ProfileModal({ partner, isOnline, currentUser, sharedKey, currentMessages, onClose, onNicknameUpdate, onAvatarUpdate, onJumpToMessage, onClearChat }) {
   const [media, setMedia] = useState([]);
   const [loadingMedia, setLoadingMedia] = useState(true);
   const [lightbox, setLightbox] = useState(null);
@@ -23,16 +24,63 @@ export default function ProfileModal({ partner, isOnline, currentUser, onClose, 
       setSearchResults([]);
       return;
     }
-    const delayDebounceFn = setTimeout(() => {
+    const delayDebounceFn = setTimeout(async () => {
       setIsSearchingLoading(true);
-      api.get(`/messages/search?q=${encodeURIComponent(searchQuery)}`)
-        .then(res => {
-          setSearchResults(res.data.messages || []);
-        })
-        .finally(() => setIsSearchingLoading(false));
+
+      // 1. Local Search (already decrypted in parent)
+      const query = searchQuery.toLowerCase();
+      const localMatches = (currentMessages || []).filter(m => 
+        m.text && m.text.toLowerCase().includes(query) && (!m.iv || m._decrypted)
+      );
+
+      try {
+        // 2. API Search (might find older messages)
+        const res = await api.get(`/messages/search?q=${encodeURIComponent(searchQuery)}`);
+        const apiMessages = res.data.messages || [];
+
+        // 3. Decrypt API results
+        const decryptedApiResults = await Promise.all(apiMessages.map(async (m) => {
+          // If already decrypted in local matches, use that
+          const existing = localMatches.find(l => l._id === m._id);
+          if (existing) return existing;
+
+          if (m.iv && m.text && !m.isDeleted && sharedKey) {
+            try {
+              const dec = await decryptMessage(m.text, m.iv, sharedKey);
+              return { ...m, text: dec, _decrypted: true };
+            } catch (err) {
+              // Return with original text but WITHOUT _decrypted flag, 
+              // so it won't be matched if it was encrypted.
+              return { ...m, _decrypted: false };
+            }
+          }
+          return { ...m, _decrypted: !m.iv }; // cleartext is considered 'decrypted'
+        }));
+
+        // 4. Merge and Deduplicate
+        const merged = [...localMatches];
+        const localIds = new Set(localMatches.map(m => m._id));
+
+        decryptedApiResults.forEach(m => {
+          if (!localIds.has(m._id)) {
+            // Verify it actually matches decrypted text AND is decrypted/cleartext
+            if (m.text && m.text.toLowerCase().includes(query) && m._decrypted) {
+              merged.push(m);
+            }
+          }
+        });
+
+        // Final sort
+        merged.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        setSearchResults(merged);
+      } catch (err) {
+        setSearchResults(localMatches);
+      } finally {
+        setIsSearchingLoading(false);
+      }
     }, 400);
     return () => clearTimeout(delayDebounceFn);
-  }, [searchQuery, isSearching]);
+  }, [searchQuery, isSearching, currentMessages, sharedKey]);
 
   useEffect(() => {
     if (!partner?._id) return;

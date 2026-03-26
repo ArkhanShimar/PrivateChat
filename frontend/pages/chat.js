@@ -610,6 +610,8 @@ export default function Chat() {
           partner={partner}
           isOnline={isPartnerOnline}
           currentUser={myData || user}
+          sharedKey={sharedKey}
+          currentMessages={messages}
           onClose={() => setShowProfile(false)}
           onNicknameUpdate={(updatedMe) => {
             setMyData(updatedMe);
