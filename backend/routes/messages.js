@@ -50,8 +50,11 @@ router.get('/', protect, async (req, res) => {
       .populate('senderId', 'name')
       .populate('replyTo');
 
+    const total = await Message.countDocuments();
+    const hasMore = skip + messages.length < total;
+
     // Return in chronological order
-    res.json({ messages: messages.reverse() });
+    res.json({ messages: messages.reverse(), hasMore });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

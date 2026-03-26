@@ -57,6 +57,10 @@ export default function Chat() {
   const [isPartnerTyping, setIsPartnerTyping] = useState(false);
   const typingTimeoutRef = useRef(null);
   const [sharedKey, setSharedKey] = useState(null);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [isFetchingMore, setIsFetchingMore] = useState(false);
+  const messageContainerRef = useRef(null);
 
   useEffect(() => {
     const t = setTimeout(() => setShowWelcome(false), 4000);
@@ -66,6 +70,7 @@ export default function Chat() {
   const socketRef = useRef(null);
   const typingTimeout = useRef(null);
   const bottomRef = useRef(null);
+  const lastMsgIdRef = useRef(null);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -77,6 +82,7 @@ export default function Chat() {
     if (!user) return;
     api.get('/messages').then(res => {
       setMessages(res.data.messages);
+      setHasMore(res.data.hasMore);
       setLoadingMsgs(false);
     }).catch(() => setLoadingMsgs(false));
 
@@ -308,9 +314,18 @@ export default function Chat() {
     };
   }, [user, token]);
 
-  // Auto-scroll to bottom on new messages
+  // Auto-scroll to bottom only on NEW messages (at the end)
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const lastMsg = messages[messages.length - 1];
+    const lastId = lastMsg?._id;
+
+    // Trigger scroll ONLY if:
+    // 1. The very last message in the array is new/different
+    // 2. Someone starts typing
+    if ((lastId && lastId !== lastMsgIdRef.current) || typingUser) {
+      bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+      if (lastId) lastMsgIdRef.current = lastId;
+    }
   }, [messages, typingUser]);
 
   const handleSend = useCallback(async ({ text, image, replyTo: replyId }) => {
@@ -375,6 +390,54 @@ export default function Chat() {
     socketRef.current.emit('react_message', { messageId, emoji });
   }, []);
 
+  const loadMoreMessages = useCallback(async () => {
+    if (isFetchingMore || !hasMore || !user) return;
+    
+    // Record current scroll height before adding messages
+    const container = messageContainerRef.current;
+    const oldScrollHeight = container ? container.scrollHeight : 0;
+    
+    setIsFetchingMore(true);
+    try {
+      const nextPage = page + 1;
+      const res = await api.get(`/messages?page=${nextPage}`);
+      const newMsgs = res.data.messages || [];
+      
+      if (newMsgs.length > 0) {
+        // Decrypt historic messages before adding to state
+        const decryptedHistoric = await Promise.all(newMsgs.map(async (msg) => {
+          if (sharedKey && msg.iv && msg.text && !msg.isDeleted) {
+            const dec = await decryptMessage(msg.text, msg.iv, sharedKey);
+            return { ...msg, text: dec, _decrypted: true };
+          }
+          return msg;
+        }));
+
+        setMessages(prev => [...decryptedHistoric, ...prev]);
+        setPage(nextPage);
+      }
+      setHasMore(res.data.hasMore);
+
+      // Restore scroll position after React renders
+      if (container) {
+        requestAnimationFrame(() => {
+          container.scrollTop = container.scrollHeight - oldScrollHeight;
+        });
+      }
+    } catch (err) {
+      console.error("Failed to load more messages:", err);
+    } finally {
+      setIsFetchingMore(false);
+    }
+  }, [page, hasMore, isFetchingMore, user]);
+
+  const handleScroll = (e) => {
+    // If scrolled to top, load more
+    if (e.target.scrollTop === 0 && hasMore && !isFetchingMore) {
+      loadMoreMessages();
+    }
+  };
+
   const scrollToPinned = () => {
     if (!pinnedMessage) return;
     scrollToMessageId(pinnedMessage._id);
@@ -390,14 +453,6 @@ export default function Chat() {
       alert("Message is further back in history. Please scroll up first.");
     }
   };
-
-
-  //   socketRef.current.emit('typing');
-  //   clearTimeout(typingTimeout.current);
-  //   typingTimeout.current = setTimeout(() => {
-  //     socketRef.current?.emit('stop_typing');
-  //   }, 2000);
-  // }, []);
 
   const isPartnerOnline = onlineUsers.some(id => {
     // Check if any online user is not the current user
@@ -510,7 +565,16 @@ export default function Chat() {
           </div>
 
           {/* Messages — this is the ONLY scrollable area */}
-          <div className="flex-1 overflow-y-auto px-4 pb-2 min-h-0">
+          <div
+            ref={messageContainerRef}
+            onScroll={handleScroll}
+            className="flex-1 overflow-y-auto px-4 pb-2 min-h-0"
+          >
+            {isFetchingMore && (
+              <div className="flex justify-center py-2 text-[10px] text-rose-300 animate-pulse">
+                Getting older memories... 💕
+              </div>
+            )}
             {showWelcome && (
               <div className="text-center py-6 animate-fade-in flex flex-col items-center justify-center">
                 <div className="text-4xl mb-2 animate-bounce">🏠</div>
