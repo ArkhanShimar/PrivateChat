@@ -10,7 +10,7 @@ const api = axios.create({
 // Attach token from localStorage as fallback (for environments where cookies don't work cross-origin)
 api.interceptors.request.use((config) => {
   if (typeof window !== 'undefined') {
-    const token = sessionStorage.getItem('lc_token');
+    const token = localStorage.getItem('lc_token');
     if (token) config.headers.Authorization = `Bearer ${token}`;
   }
   return config;

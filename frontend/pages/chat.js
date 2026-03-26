@@ -80,16 +80,31 @@ export default function Chat() {
 
   const fetchPartnerData = useCallback(() => {
     if (!user) return;
+    console.log('🔍 Fetching partner data...');
     return api.get('/auth/full-users').then(res => {
-      const me = res.data.users.find(u => u._id.toString() === user._id.toString());
-      const p = res.data.users.find(u => u._id.toString() !== user._id.toString());
-      if (me) setMyData(me);
+      const users = res.data.users || [];
+      console.log('👥 Users found:', users.length);
+      
+      const me = users.find(u => u._id.toString() === user._id.toString());
+      // The partner is the FIRST other user we find. 
+      // In a 1-to-1 app, this is correct.
+      const p = users.find(u => u._id.toString() !== user._id.toString());
+      
+      if (me) {
+        console.log('✅ Found me:', me.name);
+        setMyData(me);
+      }
       if (p) {
+        console.log('✅ Found partner:', p.name, p._id);
         setPartner(p);
         setPartnerLastSeen(p.lastSeen || p.updatedAt || p.createdAt);
         const nick = me?.nicknames?.[p._id];
         setPartnerName(nick || p.name);
+      } else {
+        console.error('❌ No partner found in user list');
       }
+    }).catch(err => {
+      console.error('❌ Failed to fetch users:', err);
     });
   }, [user]);
 
@@ -522,18 +537,20 @@ export default function Chat() {
                 className="flex-1 text-left focus:outline-none min-w-0"
                 aria-label="View partner profile"
               >
-                <h1 className="font-bold text-gray-800 dark:text-rose-100 text-sm truncate">
-                  {partnerName ? `${partnerName} 💕` : 'System Access'}
-                </h1>
-                <p className="text-xs text-gray-400 dark:text-gray-500">
-                  {isPartnerTyping ? (
-                    <span className="text-rose-500 font-medium animate-pulse">Typing...</span>
+                <div className="flex-1 min-w-0">
+                <h2 className="text-sm font-bold text-gray-800 dark:text-gray-100 truncate">
+                  {partnerName || 'Waiting for partner...'}
+                </h2>
+                <p className="text-[10px] text-gray-500 truncate">
+                  {isPartnerOnline ? (
+                    <span className="text-green-500 font-medium">Online now</span>
+                  ) : partner ? (
+                    <span>Last seen {formatLastSeen(partnerLastSeen)}</span>
                   ) : (
-                    <div className="flex items-center gap-1">
-                      <span>{isPartnerOnline ? '🟢 Online' : (partnerLastSeen ? `⚫ Last seen ${formatLastSeen(partnerLastSeen)}` : '⚫ Offline')}</span>
-                    </div>
+                    'Invite your love to join! 💕'
                   )}
                 </p>
+              </div>
               </button>
 
               {/* Call button */}

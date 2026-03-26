@@ -22,7 +22,7 @@ export const AuthProvider = ({ children }) => {
           // If legacy user (no E2EE keys), force them to re-login to generate them
           if (!userData.publicKey && !userData.encryptedPrivateKey) {
             console.warn('E2EE keys missing for restored session. Forcing re-login.');
-            sessionStorage.removeItem('lc_token');
+            localStorage.removeItem('lc_token');
             setToken(null);
           } else {
             const savedPriv = localStorage.getItem('lc_priv');
